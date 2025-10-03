@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="I'll read it someday..." />
+  <title>someday times</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro", "Segoe UI", system-ui, sans-serif;
+    }
+  </style>
+</head>
+<script>
+    (function () {
+    function fmt(ts, style) {
+        const d = new Date(ts);
+        if (Number.isNaN(d.getTime())) return '';
+        const opts = style === 'date'
+        ? { year: 'numeric', month: 'short', day: 'numeric' }
+        : { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
+        return d.toLocaleString(undefined, opts);
+    }
+
+    function render() {
+        document.querySelectorAll('.js-localtime').forEach(el => {
+        const ts = el.getAttribute('data-ts');
+        const style = el.getAttribute('data-style') || 'datetime';
+        const out = fmt(ts, style);
+        if (out) el.textContent = out;
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', render);
+    } else {
+        render();
+    }
+    })();
+</script>
+<body class="bg-slate-50 text-slate-900">
+  <div class="max-w-2xl mx-auto p-6">
+    <header class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-semibold">someday times</h1>
+      {% if current_user.is_authenticated %}
+      <div class="text-sm flex items-center gap-3">
+        <span class="text-slate-500">{{ current_user.email }}</span>
+        <p class="text-slate-500">•</p>
+        <a href="{{ url_for('logout') }}" class="text-slate-500 hover:text-slate-900">Logout</a>
+      </div>
+      {% endif %}
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="space-y-2 mb-4">
+          {% for category, msg in messages %}
+            <div class="px-3 py-2 rounded border {{ 'bg-yellow-50 border-yellow-200' if category=='warn' else 'bg-red-50 border-red-200' }}">
+              <span class="text-sm">{{ msg }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+
+    <footer class="mt-10 text-xs text-slate-400">© {{ 2025 }} someday times</footer>
+  </div>
+</body>
+</html>

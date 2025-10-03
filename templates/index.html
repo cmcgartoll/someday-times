@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block content %}
+  <form method="post" class="flex items-center gap-2 mb-6">
+    <input name="url" type="url" required placeholder="save now, read later…" 
+           class="flex-1 px-4 py-3 rounded-2xl border-0 outline-none bg-black bg-opacity-[0.04] placeholder:text-black placeholder:opacity-50 text-base" />
+    <button class="px-5 py-3 rounded-2xl bg-black bg-opacity-[0.04] hover:bg-opacity-[0.12] transition-colors text-slate-400 hover:text-slate-700">+</button>
+  </form>
+
+  {% if items|length == 0 %}
+    <p class="text-slate-500">No saved links yet. Paste your first one above.</p>
+  {% else %}
+    {% set unread = items|selectattr('date_read', 'none')|list %}
+    {% set read = items|rejectattr('date_read', 'none')|list %}
+
+    {% if unread %}
+    <ul class="space-y-2 mb-6">
+      {% for a in unread %}
+      <li class="bg-black bg-opacity-[0.04] rounded-2xl px-4 py-3 flex items-center gap-2.5">
+        <form action="{{ url_for('toggle', article_id=a.id) }}" method="post">
+          <button type="submit" class="w-5 h-5 flex items-center justify-center">
+            <img src="{{ url_for('static', filename='icons/checkbox-unchecked.svg') }}" alt="Unchecked" class="w-5 h-5" />
+          </button>
+        </form>
+
+        {% if a.favicon_url %}
+          <img src="{{ a.favicon_url }}" class="w-5 h-5" alt="favicon"
+               onerror="this.src='{{ url_for('static', filename='icons/default.svg') }}'">
+        {% else %}
+          <img src="{{ url_for('static', filename='icons/default.svg') }}" class="w-5 h-5" alt="favicon">
+        {% endif %}
+
+        <div class="min-w-0 flex-1">
+          <a href="{{ a.url }}" target="_blank" rel="noopener"
+             class="font-medium hover:underline truncate block">{{ a.title or a.url }}</a>
+
+          <div class="text-xs text-slate-500">
+            {{ a.publisher }} •
+            <span class="js-localtime"
+                  data-ts="{{ a.created_at.isoformat() }}Z"
+                  data-style="datetime"></span>
+          </div>
+        </div>
+
+        <form action="{{ url_for('delete', article_id=a.id) }}" method="post">
+          <button class="text-m text-slate-400 hover:text-red-600">
+            x
+          </button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if read %}
+    <details class="mt-6">
+      <summary class="cursor-pointer text-sm text-slate-500 hover:text-slate-700 mb-2">
+        Read ({{ read|length }})
+      </summary>
+      <ul class="space-y-2 mt-2">
+        {% for a in read %}
+        <li class="bg-black bg-opacity-[0.02] rounded-2xl px-4 py-3 flex items-center gap-2.5 opacity-50">
+          <form action="{{ url_for('toggle', article_id=a.id) }}" method="post">
+            <button type="submit" class="w-5 h-5 flex items-center justify-center">
+              <img src="{{ url_for('static', filename='icons/checkbox-check.svg') }}" alt="Checked" class="w-5 h-5" />
+            </button>
+          </form>
+
+          {% if a.favicon_url %}
+            <img src="{{ a.favicon_url }}" class="w-5 h-5" alt="favicon"
+                 onerror="this.src='{{ url_for('static', filename='icons/default.svg') }}'">
+          {% else %}
+            <img src="{{ url_for('static', filename='icons/default.svg') }}" class="w-5 h-5" alt="favicon">
+          {% endif %}
+
+          <div class="min-w-0 flex-1">
+            <a href="{{ a.url }}" target="_blank" rel="noopener"
+               class="font-medium hover:underline truncate block">{{ a.title or a.url }}</a>
+
+            <div class="text-xs text-slate-500">
+              {{ a.publisher }} •
+              <span class="js-localtime"
+                    data-ts="{{ a.created_at.isoformat() }}Z"
+                    data-style="datetime"></span>
+              <span class="text-slate-400"> • read </span>
+              <span class="js-localtime"
+                    data-ts="{{ a.date_read.isoformat() }}Z"
+                    data-style="datetime"></span>
+            </div>
+          </div>
+          <form action="{{ url_for('delete', article_id=a.id) }}" method="post">
+            <button class="text-m text-slate-400 hover:text-red-600" title="Delete" type="submit">
+              x
+            </button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+  {% endif %}
+{% endblock %}
