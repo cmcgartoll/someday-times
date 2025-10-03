@@ -19,7 +19,7 @@
         if (Number.isNaN(d.getTime())) return '';
         const opts = style === 'date'
         ? { year: 'numeric', month: 'short', day: 'numeric' }
-        : { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
+        : { year: 'numeric', month: 'short', day: 'numeric'};//, hour: 'numeric', minute: '2-digit' };
         return d.toLocaleString(undefined, opts);
     }
 
