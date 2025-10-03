@@ -11,35 +11,43 @@
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro", "Segoe UI", system-ui, sans-serif;
     }
   </style>
-</head>
+</head> 
 <script>
-    (function () {
+  (function () {
     function fmt(ts, style) {
-        const d = new Date(ts);
-        if (Number.isNaN(d.getTime())) return '';
-        const opts = style === 'date'
+      const d = new Date(ts);
+      if (Number.isNaN(d.getTime())) return '';
+      const opts = style === 'date'
         ? { year: 'numeric', month: 'short', day: 'numeric' }
-        : { year: 'numeric', month: 'short', day: 'numeric'};//, hour: 'numeric', minute: '2-digit' };
-        return d.toLocaleString(undefined, opts);
+        : { year: 'numeric', month: 'short', day: 'numeric' };//, hour: 'numeric', minute: '2-digit' };
+      return d.toLocaleString(undefined, opts);
     }
 
-    function render() {
-        document.querySelectorAll('.js-localtime').forEach(el => {
+    function renderLocalTimes(root = document) {
+      root.querySelectorAll('.js-localtime').forEach(el => {
         const ts = el.getAttribute('data-ts');
         const style = el.getAttribute('data-style') || 'datetime';
         const out = fmt(ts, style);
         if (out) el.textContent = out;
-        });
+      });
     }
 
+    window.renderLocalTimes = renderLocalTimes;
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', render);
+      document.addEventListener('DOMContentLoaded', () => renderLocalTimes(document));
     } else {
-        render();
+      renderLocalTimes(document);
     }
-    })();
+  })();
 </script>
 <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+<script>
+  // Re-format any timestamps that were injected/replaced by HTMX
+  document.body.addEventListener('htmx:afterSwap', function () {
+    if (window.renderLocalTimes) window.renderLocalTimes();
+  });
+</script>
 <body class="bg-slate-50 text-slate-900">
   <div class="max-w-2xl mx-auto p-6">
     <header class="flex items-center justify-between mb-6">

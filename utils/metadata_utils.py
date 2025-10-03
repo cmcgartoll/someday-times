@@ -68,16 +68,16 @@ def fetch_metadata(target_url: str):
 
     # Try OEmbed API first
     oembed_title, oembed_publisher, oembed_icon_url = try_oembed(target_url, publisher)
-    if oembed_title and not oembed_icon_url:
-        try:
-            resp = requests.get(target_url, headers=HEADERS, timeout=1)
-            if resp and resp.status_code < 400 and resp.text:
-                soup = BeautifulSoup(resp.text, "html.parser")
-                favicon_url = resolve_best_icon(resp, soup)
-        except:
-            pass
-    return oembed_title, oembed_publisher, oembed_icon_url or favicon_url
-
+    if oembed_title:
+        if not oembed_icon_url:
+            try:
+                resp = requests.get(target_url, headers=HEADERS, timeout=1)
+                if resp and resp.status_code < 400 and resp.text:
+                    soup = BeautifulSoup(resp.text, "html.parser")
+                    favicon_url = resolve_best_icon(resp, soup)
+            except:
+                pass
+        return oembed_title, oembed_publisher, oembed_icon_url or favicon_url
     # Arxiv.org special case (to get the title from the abstract page)
     if publisher == "arxiv.org" and "/pdf/" in p.path:
         target_url = target_url.replace("/pdf/", "/abs/")

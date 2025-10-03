@@ -1,0 +1,48 @@
+<li id="article-{{ a.id }}" class="bg-black bg-opacity-[0.04] rounded-2xl px-4 py-3 flex items-center gap-2.5 {{ 'opacity-50' if a.date_read else '' }}">
+  <form
+    hx-post="{{ url_for('toggle', article_id=a.id) }}"
+    hx-target="body"
+    hx-swap="none"
+  >
+    <button type="submit" class="w-5 h-5 flex items-center justify-center">
+      {% if a.date_read %}
+        <img src="{{ url_for('static', filename='icons/checkbox-check.svg') }}" alt="Checked" class="w-5 h-5" />
+      {% else %}
+        <img src="{{ url_for('static', filename='icons/checkbox-unchecked.svg') }}" alt="Unchecked" class="w-5 h-5" />
+      {% endif %}
+    </button>
+  </form>
+
+  {% if a.favicon_url %}
+    <img src="{{ a.favicon_url }}" class="w-5 h-5" alt="favicon"
+         onerror="this.src='{{ url_for('static', filename='icons/default.svg') }}'">
+  {% else %}
+    <img src="{{ url_for('static', filename='icons/default.svg') }}" class="w-5 h-5" alt="favicon">
+  {% endif %}
+
+  <div class="min-w-0 flex-1">
+    <a href="{{ a.url }}" target="_blank" rel="noopener"
+       class="font-medium hover:underline truncate block">{{ a.title or a.url }}</a>
+
+    <div class="text-xs text-slate-500">
+      {{ a.publisher }} • added
+      <span class="js-localtime"
+            data-ts="{{ a.created_at.isoformat() }}Z"
+            data-style="datetime">{{ a.created_at.strftime('%b %d, %Y') }}</span>
+      {% if a.date_read %}
+        • read 
+        <span class="js-localtime"
+              data-ts="{{ a.date_read.isoformat() }}Z"
+              data-style="datetime">{{ a.date_read.strftime('%b %d, %Y') }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <form
+    hx-post="{{ url_for('delete', article_id=a.id) }}"
+    hx-target="#article-{{ a.id }}"
+    hx-swap="delete"
+  >
+    <button class="text-m text-slate-400 hover:text-red-600" title="Delete" type="submit">x</button>
+  </form>
+</li>

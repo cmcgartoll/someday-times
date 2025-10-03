@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
     LoginManager, login_user, login_required, logout_user,
@@ -56,6 +56,8 @@ class Article(db.Model):
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
+def is_htmx():
+    return request.headers.get("HX-Request") == "true"
 
 @app.route('/', methods=['GET', 'POST'])
 @login_required
@@ -63,7 +65,10 @@ def index():
     if request.method == 'POST':
         url = request.form.get('url', '').strip()
         if not url:
+            if is_htmx():
+                return make_response("Missing URL", 400)
             return redirect(url_for('index'))
+
         title, publisher, favicon = fetch_metadata(url)
         article = Article(
             user_id=current_user.id,
@@ -74,6 +79,11 @@ def index():
         )
         db.session.add(article)
         db.session.commit()
+
+        # HTMX: return only one <li> row (to prepend into #unread-list)
+        if is_htmx():
+            return render_template('partials/article_li.html', a=article)
+
         return redirect(url_for('index'))
 
     view = request.args.get('view', 'all')
@@ -91,18 +101,28 @@ def index():
     items = q.all()
     return render_template('index.html', items=items, view=view)
 
-
 @app.post('/toggle/<int:article_id>')
 @login_required
 def toggle(article_id):
     a = Article.query.filter_by(id=article_id, user_id=current_user.id).first_or_404()
-    if a.date_read is None:
-        a.date_read = datetime.utcnow()
-    else:
-        a.date_read = None
+    a.date_read = None if a.date_read else datetime.utcnow()
     db.session.commit()
-    return redirect(url_for('index', view=request.args.get('view', 'all')))
 
+    if is_htmx():
+        unread = (Article.query
+                  .filter_by(user_id=current_user.id)
+                  .filter(Article.date_read.is_(None))
+                  .order_by(Article.created_at.desc())
+                  .all())
+        read = (Article.query
+                .filter_by(user_id=current_user.id)
+                .filter(Article.date_read.is_not(None))
+                .order_by(Article.date_read.desc())
+                .all())
+        # Return OOB fragments that replace both lists (and read count)
+        return render_template('partials/lists_oob.html', unread=unread, read=read)
+
+    return redirect(url_for('index', view=request.args.get('view', 'all')))
 
 @app.post('/delete/<int:article_id>')
 @login_required
@@ -110,8 +130,22 @@ def delete(article_id):
     a = Article.query.filter_by(id=article_id, user_id=current_user.id).first_or_404()
     db.session.delete(a)
     db.session.commit()
-    return redirect(url_for('index', view=request.args.get('view', 'all')))
 
+    # HTMX: replace both lists (and count) to reflect deletion without reload
+    if is_htmx():
+        unread = (Article.query
+                  .filter_by(user_id=current_user.id)
+                  .filter(Article.date_read.is_(None))
+                  .order_by(Article.created_at.desc())
+                  .all())
+        read = (Article.query
+                .filter_by(user_id=current_user.id)
+                .filter(Article.date_read.is_not(None))
+                .order_by(Article.date_read.desc())
+                .all())
+        return render_template('partials/lists_oob.html', unread=unread, read=read)
+
+    return redirect(url_for('index', view=request.args.get('view', 'all')))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -126,7 +160,6 @@ def login():
             return redirect(url_for('index'))
         flash('Invalid credentials', 'error')
     return render_template('auth.html', mode='login')
-
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -149,13 +182,11 @@ def register():
         return redirect(url_for('index'))
     return render_template('auth.html', mode='register')
 
-
 @app.get('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
-
 
 @app.before_request
 def ensure_db():

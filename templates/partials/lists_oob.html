@@ -1,0 +1,16 @@
+<!-- unread list -->
+<ul id="unread-list" hx-swap-oob="true" class="space-y-2 mb-6">
+  {% for a in unread %}
+    {% include 'partials/article_li.html' %}
+  {% endfor %}
+</ul>
+
+<!-- read list -->
+<ul id="read-list" hx-swap-oob="true" class="space-y-2 mt-2">
+  {% for a in read %}
+    {% include 'partials/article_li.html' %}
+  {% endfor %}
+</ul>
+
+<!-- read count -->
+<span id="read-count" hx-swap-oob="true">{{ read|length }}</span>
