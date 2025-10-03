@@ -76,7 +76,7 @@ def fetch_metadata(target_url: str):
                 favicon_url = resolve_best_icon(resp, soup)
         except:
             pass
-        return oembed_title, oembed_publisher, oembed_icon_url or favicon_url
+    return oembed_title, oembed_publisher, oembed_icon_url or favicon_url
 
     # Arxiv.org special case (to get the title from the abstract page)
     if publisher == "arxiv.org" and "/pdf/" in p.path:
