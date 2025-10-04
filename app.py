@@ -10,24 +10,19 @@ from flask_login import (
 )
 from sqlalchemy import case, desc
 from werkzeug.security import generate_password_hash, check_password_hash
-import json
 from utils.metadata_utils import fetch_metadata
+from urllib.parse import quote_plus
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-DEFAULT_DB_PATH = os.path.join(BASE_DIR, 'someday_times.db')
+DEFAULT_DB_PATH = os.path.join(BASE_DIR, 'example/someday_times.db')
 ENV = os.getenv("FLASK_ENV", "development")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev')
 
 if ENV == "production":
-    db_url = os.getenv("DB_URL")
-    db_name = os.getenv("DB")
-    secret = json.loads(os.getenv("DB_SECRET"))
-    port = os.getenv("DB_PORT")
-    db_url = "postgresql+psycopg2://" + secret["username"] + ":" + secret["password"] + "@" + db_url + ":" + port + "/" + db_name
-
-    app.config["SQLALCHEMY_DATABASE_URI"] = db_url or f"sqlite:///{DEFAULT_DB_PATH}"
+    database_url = os.getenv("DATABASE_URL")
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 else:
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DEFAULT_DB_PATH}"
@@ -216,4 +211,4 @@ def ensure_db():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=8080)
