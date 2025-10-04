@@ -24,6 +24,10 @@ linkedin.com
 news.ycombinator.com
 sfchronicle.com
 bostonglobe.com
+youtube.com
+vimeo.com
+spotify.com
+soundcloud.com
 ```
 
 # To-Do

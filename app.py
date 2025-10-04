@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 
 from flask import Flask, render_template, request, redirect, url_for, flash, make_response
+from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
     LoginManager, login_user, login_required, logout_user,
@@ -9,18 +10,32 @@ from flask_login import (
 )
 from sqlalchemy import case, desc
 from werkzeug.security import generate_password_hash, check_password_hash
-
+import json
 from utils.metadata_utils import fetch_metadata
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-DB_PATH = os.path.join(BASE_DIR, 'someday_times.db')
+DEFAULT_DB_PATH = os.path.join(BASE_DIR, 'someday_times.db')
+ENV = os.getenv("FLASK_ENV", "development")
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-change-me')
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev')
+
+if ENV == "production":
+    db_url = os.getenv("DB_URL")
+    db_name = os.getenv("DB")
+    secret = json.loads(os.getenv("DB_SECRET"))
+    port = os.getenv("DB_PORT")
+    db_url = "postgresql+psycopg2://" + secret["username"] + ":" + secret["password"] + "@" + db_url + ":" + port + "/" + db_name
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url or f"sqlite:///{DEFAULT_DB_PATH}"
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+else:
+    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DEFAULT_DB_PATH}"
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
@@ -52,12 +67,17 @@ class Article(db.Model):
     user = db.relationship('User', backref=db.backref('articles', lazy='dynamic'))
 
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
 def is_htmx():
     return request.headers.get("HX-Request") == "true"
+
+@app.get("/healthz")
+def healthz():
+    return "ok", 200
 
 @app.route('/', methods=['GET', 'POST'])
 @login_required
@@ -190,8 +210,9 @@ def logout():
 
 @app.before_request
 def ensure_db():
-    with app.app_context():
-        db.create_all()
+    if ENV == "development":
+        with app.app_context():
+            db.create_all()
 
 
 if __name__ == '__main__':
